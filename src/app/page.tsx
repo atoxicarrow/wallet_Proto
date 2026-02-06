@@ -5,7 +5,7 @@ import { useFinanceStore } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TransactionDialog } from "@/components/transaction-dialog";
 import { DashboardCharts } from "@/components/dashboard-charts";
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, CloudOff, RefreshCcw } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, CloudOff, RefreshCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function Dashboard() {
@@ -15,7 +15,6 @@ export default function Dashboard() {
     addTransaction,
     totalIncome,
     totalExpense,
-    totalSavings,
     balance,
     isOffline,
     isSyncing,
@@ -48,7 +47,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-3">
         <Card className="border-none shadow-sm bg-gradient-to-br from-white to-secondary/50">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
@@ -90,20 +89,6 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold font-headline text-rose-600">
               -${formatCLP(totalExpense)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-accent/5">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-bold text-accent-foreground uppercase tracking-widest">
-              Total Ahorrado
-            </CardTitle>
-            <PiggyBank className="h-5 w-5 text-accent" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold font-headline text-accent-foreground">
-              ${formatCLP(totalSavings)}
             </div>
           </CardContent>
         </Card>

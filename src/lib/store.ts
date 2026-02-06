@@ -80,7 +80,7 @@ const useFinanceStoreBase = create<FinanceState>()(
         
         set((state) => {
           const updatedTransactions = [newTransaction, ...state.transactions];
-          let updatedFunds = [...state.funds];
+          let updatedFunds = state.funds.map(f => ({ ...f, subBudgets: f.subBudgets.map(sb => ({ ...sb })) }));
 
           // Lógica de ahorro: Incrementa el pozo de la meta
           if (t.type === "saving" && t.fundId) {
@@ -188,7 +188,6 @@ export function useFinanceStore() {
   const currentTotalInFunds = store.funds.reduce((acc, f) => acc + Math.max(0, f.currentAmount), 0);
   
   // El balance disponible (Wallet) es el efectivo total menos los gastos generales y lo reservado en metas
-  // Los gastos realizados DESDE metas ya se descontaron del totalExpense, por lo que la Wallet se mantiene pura.
   const balance = totalIncome - totalExpense - currentTotalInFunds;
 
   const totalSavings = store.funds.reduce((acc, f) => acc + f.currentAmount, 0);
