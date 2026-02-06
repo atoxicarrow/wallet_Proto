@@ -10,6 +10,8 @@ export default function ExpensesPage() {
   const { transactions, funds, addTransaction, totalExpense } = useFinanceStore();
   const expenseTransactions = transactions.filter(t => t.type === 'expense');
 
+  const formatCLP = (val: number) => val.toLocaleString('es-CL', { minimumFractionDigits: 0 });
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -29,7 +31,7 @@ export default function ExpensesPage() {
             <div>
               <p className="text-sm font-medium text-accent-foreground uppercase tracking-wider">Total Gastado</p>
               <h2 className="text-4xl font-bold font-headline text-accent-foreground">
-                ${totalExpense.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                ${formatCLP(totalExpense)}
               </h2>
             </div>
           </div>
@@ -53,11 +55,11 @@ export default function ExpensesPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-rose-600">
-                    -${t.amount.toLocaleString()}
+                    -${formatCLP(t.amount)}
                   </div>
                   {t.fundId && (
                     <p className="text-[10px] mt-2 text-muted-foreground italic font-medium">
-                      Descontado del fondo asignado
+                      Descontado de la meta de ahorro
                     </p>
                   )}
                 </CardContent>

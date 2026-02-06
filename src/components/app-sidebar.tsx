@@ -40,7 +40,7 @@ const items = [
     icon: TrendingDown,
   },
   {
-    title: "Fondos de Ahorro",
+    title: "Metas de Ahorro",
     url: "/funds",
     icon: Target,
   },

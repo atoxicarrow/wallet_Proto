@@ -11,18 +11,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDownRight, ArrowUpRight, Calendar, Tag } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Calendar, Tag, History } from "lucide-react";
 
 export default function HistoryPage() {
   const { transactions } = useFinanceStore();
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("es-ES", {
+    return new Date(dateStr).toLocaleDateString("es-CL", {
       day: "2-digit",
       month: "short",
       year: "numeric",
     });
   };
+
+  const formatCLP = (val: number) => val.toLocaleString('es-CL', { minimumFractionDigits: 0 });
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -59,7 +61,7 @@ export default function HistoryPage() {
                       <div className="flex flex-col">
                         <span className="font-semibold text-foreground">{t.description || "Sin descripción"}</span>
                         {t.fundId && (
-                          <span className="text-xs text-muted-foreground italic">Fondo asignado</span>
+                          <span className="text-xs text-muted-foreground italic">Meta asignada</span>
                         )}
                       </div>
                     </TableCell>
@@ -74,7 +76,7 @@ export default function HistoryPage() {
                     <TableCell className="text-right">
                       <div className={`flex items-center justify-end gap-1 font-bold ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {t.type === 'income' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-                        ${t.amount.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                        ${formatCLP(t.amount)}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -88,7 +90,7 @@ export default function HistoryPage() {
               </div>
               <h3 className="text-lg font-semibold font-headline">No hay transacciones aún</h3>
               <p className="text-muted-foreground max-w-xs mx-auto">
-                Tus ingresos y gastos aparecerán aquí una vez que los registres en el panel principal.
+                Tus ingresos y gastos aparecerán aquí una vez que los registres.
               </p>
             </div>
           )}
@@ -97,5 +99,3 @@ export default function HistoryPage() {
     </div>
   );
 }
-
-import { History } from "lucide-react";

@@ -20,6 +20,8 @@ export default function Dashboard() {
     isSyncing,
   } = useFinanceStore();
 
+  const formatCLP = (val: number) => val.toLocaleString('es-CL', { minimumFractionDigits: 0 });
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -55,10 +57,10 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold font-headline">
-              ${balance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+              ${formatCLP(balance)}
             </div>
             <p className="text-xs text-muted-foreground mt-1 font-medium">
-              Disponible en todas tus cuentas
+              Disponible en tus cuentas
             </p>
           </CardContent>
         </Card>
@@ -72,7 +74,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold font-headline text-emerald-600">
-              +${totalIncome.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+              +${formatCLP(totalIncome)}
             </div>
             <p className="text-xs text-muted-foreground mt-1 font-medium">
               Acumulado este mes
@@ -89,7 +91,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold font-headline text-rose-600">
-              -${totalExpense.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+              -${formatCLP(totalExpense)}
             </div>
             <p className="text-xs text-muted-foreground mt-1 font-medium">
               Salidas de capital este mes
@@ -107,7 +109,7 @@ export default function Dashboard() {
 
       <div className="space-y-4">
         <h2 className="text-xl font-bold font-headline flex items-center gap-2">
-          Asignación de Fondos
+          Metas de Ahorro
         </h2>
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {funds.map((fund) => {
@@ -118,7 +120,7 @@ export default function Dashboard() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg font-semibold font-headline">{fund.name}</CardTitle>
-                    <span className="text-sm font-bold text-accent-foreground">${remaining} rest.</span>
+                    <span className="text-sm font-bold text-accent-foreground">${formatCLP(remaining)} rest.</span>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -129,8 +131,8 @@ export default function Dashboard() {
                     />
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Gastado: ${fund.spentAmount}</span>
-                    <span>Meta: ${fund.allocatedAmount}</span>
+                    <span>Ahorrado: ${formatCLP(fund.spentAmount)}</span>
+                    <span>Meta: ${formatCLP(fund.allocatedAmount)}</span>
                   </div>
                 </CardContent>
               </Card>

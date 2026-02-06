@@ -23,9 +23,9 @@ export interface Fund {
 }
 
 const INITIAL_FUNDS: Fund[] = [
-  { id: "1", name: "Alquiler", allocatedAmount: 500, spentAmount: 0 },
-  { id: "2", name: "Supermercado", allocatedAmount: 200, spentAmount: 0 },
-  { id: "3", name: "Emergencias", allocatedAmount: 1000, spentAmount: 0 },
+  { id: "1", name: "Fondo de Emergencia", allocatedAmount: 500000, spentAmount: 0 },
+  { id: "2", name: "Vacaciones", allocatedAmount: 1000000, spentAmount: 0 },
+  { id: "3", name: "Ahorro Inversión", allocatedAmount: 2000000, spentAmount: 0 },
 ];
 
 export function useFinanceStore() {
@@ -35,7 +35,6 @@ export function useFinanceStore() {
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    // Load from local storage for offline simulation
     const savedTransactions = localStorage.getItem("bc_transactions");
     const savedFunds = localStorage.getItem("bc_funds");
     if (savedTransactions) setTransactions(JSON.parse(savedTransactions));
@@ -59,7 +58,6 @@ export function useFinanceStore() {
 
   const syncData = async () => {
     setIsSyncing(true);
-    // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 1500));
     setIsSyncing(false);
   };

@@ -10,6 +10,8 @@ export default function IncomePage() {
   const { transactions, funds, addTransaction, totalIncome } = useFinanceStore();
   const incomeTransactions = transactions.filter(t => t.type === 'income');
 
+  const formatCLP = (val: number) => val.toLocaleString('es-CL', { minimumFractionDigits: 0 });
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -29,7 +31,7 @@ export default function IncomePage() {
             <div>
               <p className="text-sm font-medium text-primary-foreground uppercase tracking-wider">Total Ingresado</p>
               <h2 className="text-4xl font-bold font-headline text-primary-foreground">
-                ${totalIncome.toLocaleString('es-ES', { minimumFractionDigits: 2 })}
+                ${formatCLP(totalIncome)}
               </h2>
             </div>
           </div>
@@ -53,7 +55,7 @@ export default function IncomePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-emerald-600">
-                    +${t.amount.toLocaleString()}
+                    +${formatCLP(t.amount)}
                   </div>
                 </CardContent>
               </Card>

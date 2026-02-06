@@ -55,7 +55,7 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
 
   const categories = type === "income" 
     ? ["Salario", "Ventas", "Intereses", "Otros"]
-    : ["Comida", "Transporte", "Ocio", "Salud", "Educación", "Otros"];
+    : ["Comida", "Transporte", "Ocio", "Salud", "Ahorros", "Otros"];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -76,15 +76,15 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="amount">Cantidad</Label>
+            <Label htmlFor="amount">Cantidad ($)</Label>
             <Input
               id="amount"
               type="number"
-              step="0.01"
+              step="1"
               required
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
+              placeholder="0"
               className="h-11"
             />
           </div>
@@ -105,16 +105,16 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
           </div>
           {type === "expense" && funds.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="fund">Asignar a Fondo (Opcional)</Label>
+              <Label htmlFor="fund">Asignar a Meta de Ahorro (Opcional)</Label>
               <Select value={fundId} onValueChange={setFundId}>
                 <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Ninguno" />
+                  <SelectValue placeholder="Ninguna" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Ninguno</SelectItem>
+                  <SelectItem value="none">Ninguna</SelectItem>
                   {funds.map((fund) => (
                     <SelectItem key={fund.id} value={fund.id}>
-                      {fund.name} (Restante: ${fund.allocatedAmount - fund.spentAmount})
+                      {fund.name} (Restante: ${Math.max(0, fund.allocatedAmount - fund.spentAmount).toLocaleString('es-CL')})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -127,7 +127,7 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ej. Pago de nómina"
+              placeholder="Ej. Pago de sueldo"
               className="h-11"
             />
           </div>
