@@ -1,7 +1,9 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { useState, useEffect } from 'react';
 
 export type TransactionType = "income" | "expense" | "saving";
 
@@ -45,82 +47,114 @@ const INITIAL_FUNDS: Fund[] = [
   },
 ];
 
+interface FinanceState {
+  transactions: Transaction[];
+  funds: Fund[];
+  isSyncing: boolean;
+  isOffline: boolean;
+  addTransaction: (t: Omit<Transaction, "id">) => void;
+  addFund: (f: Omit<Fund, "id" | "currentAmount">) => void;
+  setOffline: (offline: boolean) => void;
+  setSyncing: (syncing: boolean) => void;
+}
+
+// Store interno con Zustand y persistencia
+const useFinanceStoreBase = create<FinanceState>()(
+  persist(
+    (set, get) => ({
+      transactions: [],
+      funds: INITIAL_FUNDS,
+      isSyncing: false,
+      isOffline: false,
+      setOffline: (isOffline) => set({ isOffline }),
+      setSyncing: (isSyncing) => set({ isSyncing }),
+      addTransaction: (t) => {
+        const id = Math.random().toString(36).substring(2, 11);
+        const newTransaction = { ...t, id };
+        
+        set((state) => {
+          const updatedTransactions = [newTransaction, ...state.transactions];
+          let updatedFunds = [...state.funds];
+
+          if (t.type === "saving" && t.fundId) {
+            updatedFunds = updatedFunds.map((f) =>
+              f.id === t.fundId ? { ...f, currentAmount: f.currentAmount + t.amount } : f
+            );
+          }
+          
+          if (t.type === "expense" && t.fundId) {
+            updatedFunds = updatedFunds.map((f) => {
+              if (f.id === t.fundId) {
+                const updatedSubBudgets = f.subBudgets.map(sb => 
+                  sb.id === t.subBudgetId ? { ...sb, spent: sb.spent + t.amount } : sb
+                );
+                return { 
+                  ...f, 
+                  currentAmount: Math.max(0, f.currentAmount - t.amount),
+                  subBudgets: updatedSubBudgets
+                };
+              }
+              return f;
+            });
+          }
+          
+          return { transactions: updatedTransactions, funds: updatedFunds };
+        });
+
+        // Efecto visual de sincronización
+        if (!get().isOffline) {
+          get().setSyncing(true);
+          setTimeout(() => get().setSyncing(false), 1000);
+        }
+      },
+      addFund: (f) => {
+        const id = Math.random().toString(36).substring(2, 11);
+        const newFund = { ...f, id, currentAmount: 0 };
+        set((state) => ({ funds: [...state.funds, newFund] }));
+        
+        if (!get().isOffline) {
+          get().setSyncing(true);
+          setTimeout(() => get().setSyncing(false), 1000);
+        }
+      },
+    }),
+    {
+      name: 'billetera-clara-storage',
+    }
+  )
+);
+
+// Wrapper hook para manejar hidratación en Next.js y valores calculados
 export function useFinanceStore() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [funds, setFunds] = useState<Fund[]>(INITIAL_FUNDS);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
+  const store = useFinanceStoreBase();
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    const savedTransactions = localStorage.getItem("bc_transactions");
-    const savedFunds = localStorage.getItem("bc_funds");
-    if (savedTransactions) setTransactions(JSON.parse(savedTransactions));
-    if (savedFunds) setFunds(JSON.parse(savedFunds));
+    setIsHydrated(true);
+    
+    if (typeof navigator !== 'undefined') {
+      store.setOffline(!navigator.onLine);
+    }
 
     const handleOnline = () => {
-      setIsOffline(false);
-      syncData();
+      store.setOffline(false);
+      store.setSyncing(true);
+      setTimeout(() => store.setSyncing(false), 1500);
     };
-    const handleOffline = () => setIsOffline(true);
+    const handleOffline = () => store.setOffline(true);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    setIsOffline(!navigator.onLine);
-
+    
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []);
+  }, [store]);
 
-  const syncData = async () => {
-    setIsSyncing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSyncing(false);
-  };
-
-  const addTransaction = (t: Omit<Transaction, "id">) => {
-    const newTransaction = { ...t, id: Math.random().toString(36).substr(2, 9) };
-    const updatedTransactions = [newTransaction, ...transactions];
-    setTransactions(updatedTransactions);
-    localStorage.setItem("bc_transactions", JSON.stringify(updatedTransactions));
-
-    if (t.type === "saving" && t.fundId) {
-      const updatedFunds = funds.map((f) =>
-        f.id === t.fundId ? { ...f, currentAmount: f.currentAmount + t.amount } : f
-      );
-      setFunds(updatedFunds);
-      localStorage.setItem("bc_funds", JSON.stringify(updatedFunds));
-    }
-    
-    if (t.type === "expense" && t.fundId) {
-      const updatedFunds = funds.map((f) => {
-        if (f.id === t.fundId) {
-          const updatedSubBudgets = f.subBudgets.map(sb => 
-            sb.id === t.subBudgetId ? { ...sb, spent: sb.spent + t.amount } : sb
-          );
-          return { 
-            ...f, 
-            currentAmount: Math.max(0, f.currentAmount - t.amount),
-            subBudgets: updatedSubBudgets
-          };
-        }
-        return f;
-      });
-      setFunds(updatedFunds);
-      localStorage.setItem("bc_funds", JSON.stringify(updatedFunds));
-    }
-
-    if (!isOffline) syncData();
-  };
-
-  const addFund = (f: Omit<Fund, "id" | "currentAmount">) => {
-    const newFund = { ...f, id: Math.random().toString(36).substr(2, 9), currentAmount: 0 };
-    const updatedFunds = [...funds, newFund];
-    setFunds(updatedFunds);
-    localStorage.setItem("bc_funds", JSON.stringify(updatedFunds));
-    if (!isOffline) syncData();
-  };
+  // Guardar con isHydrated para evitar errores de hidratación en Next.js
+  const transactions = isHydrated ? store.transactions : [];
+  const funds = isHydrated ? store.funds : INITIAL_FUNDS;
 
   const totalIncome = transactions
     .filter((t) => t.type === "income")
@@ -137,15 +171,12 @@ export function useFinanceStore() {
   const balance = totalIncome - totalExpense - totalSavings;
 
   return {
+    ...store,
     transactions,
     funds,
-    addTransaction,
-    addFund,
     totalIncome,
     totalExpense,
     totalSavings,
     balance,
-    isSyncing,
-    isOffline,
   };
 }
