@@ -1,9 +1,10 @@
 
 import type {Metadata, Viewport} from 'next';
 import './globals.css';
-import {SidebarProvider} from '@/components/ui/sidebar';
+import {SidebarProvider, SidebarTrigger} from '@/components/ui/sidebar';
 import {AppSidebar} from '@/components/app-sidebar';
 import {Toaster} from '@/components/ui/toaster';
+import {Wallet} from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Billetera Clara - Finanzas Transparentes',
@@ -42,13 +43,25 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background">
         <SidebarProvider defaultOpen={true}>
-          <div className="flex min-h-screen w-full">
+          <div className="flex min-h-screen w-full flex-col md:flex-row">
             <AppSidebar />
-            <main className="flex-1 overflow-y-auto">
-              <div className="container mx-auto p-4 md:p-8">
-                {children}
-              </div>
-            </main>
+            <div className="flex flex-1 flex-col">
+              {/* Header móvil */}
+              <header className="flex h-16 items-center gap-4 border-b bg-white px-4 md:hidden">
+                <SidebarTrigger />
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <Wallet className="h-5 w-5" />
+                  </div>
+                  <span className="text-lg font-bold font-headline">Billetera Clara</span>
+                </div>
+              </header>
+              <main className="flex-1 overflow-y-auto">
+                <div className="container mx-auto p-4 md:p-8">
+                  {children}
+                </div>
+              </main>
+            </div>
           </div>
         </SidebarProvider>
         <Toaster />
