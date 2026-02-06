@@ -35,6 +35,7 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [fundId, setFundId] = useState<string | undefined>();
+  const [subBudgetId, setSubBudgetId] = useState<string | undefined>();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +46,7 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
       description: description || (type === "saving" ? "Aporte a meta" : ""),
       date: new Date().toISOString(),
       fundId: (type === "expense" || type === "saving") ? fundId : undefined,
+      subBudgetId: type === "expense" ? subBudgetId : undefined,
     });
     setOpen(false);
     resetForm();
@@ -55,6 +57,7 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
     setCategory("");
     setDescription("");
     setFundId(undefined);
+    setSubBudgetId(undefined);
   };
 
   const categories = type === "income" 
@@ -85,6 +88,7 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
   };
 
   const config = getButtonConfig();
+  const selectedFund = funds.find(f => f.id === fundId);
 
   return (
     <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(!val) resetForm(); }}>
@@ -120,7 +124,7 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
           
           {type !== "saving" && (
             <div className="space-y-2">
-              <Label htmlFor="category">Categoría</Label>
+              <Label htmlFor="category">Categoría General</Label>
               <Select required value={category} onValueChange={setCategory}>
                 <SelectTrigger className="h-11">
                   <SelectValue placeholder="Selecciona una categoría" />
@@ -139,11 +143,11 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
           {(type === "expense" || type === "saving") && (
             <div className="space-y-2">
               <Label htmlFor="fund">
-                {type === "saving" ? "Seleccionar Meta de Destino" : "Descontar de Meta (Opcional)"}
+                {type === "saving" ? "Seleccionar Meta de Destino" : "Gasto asociado a Meta (Opcional)"}
               </Label>
               <Select required={type === "saving"} value={fundId} onValueChange={setFundId}>
                 <SelectTrigger className="h-11 border-accent/50 bg-accent/5">
-                  <SelectValue placeholder={type === "saving" ? "Elige una meta" : "Ninguna (Gasto general)"} />
+                  <SelectValue placeholder={type === "saving" ? "Elige una meta" : "Ninguna (Gasto de la Wallet)"} />
                 </SelectTrigger>
                 <SelectContent>
                   {type === "expense" && <SelectItem value="none">Ninguna</SelectItem>}
@@ -157,13 +161,31 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
             </div>
           )}
 
+          {type === "expense" && fundId && fundId !== "none" && selectedFund && (
+            <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+              <Label htmlFor="subBudget" className="text-accent-foreground font-bold">Subdivisión de la Meta</Label>
+              <Select required value={subBudgetId} onValueChange={setSubBudgetId}>
+                <SelectTrigger className="h-11 border-accent bg-accent/10">
+                  <SelectValue placeholder="¿De qué subdivisión descontar?" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedFund.subBudgets.map((sb) => (
+                    <SelectItem key={sb.id} value={sb.id}>
+                      {sb.name} (Saldo: ${ (sb.amount - sb.spent).toLocaleString('es-CL') })
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="description">Descripción (Opcional)</Label>
             <Input
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={type === "saving" ? "Ej. Ahorro del mes" : "Ej. Compra supermercado"}
+              placeholder={type === "saving" ? "Ej. Ahorro del mes" : "Ej. Pago reserva Airbnb"}
               className="h-11"
             />
           </div>

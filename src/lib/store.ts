@@ -13,6 +13,14 @@ export interface Transaction {
   date: string;
   description: string;
   fundId?: string;
+  subBudgetId?: string;
+}
+
+export interface SubBudget {
+  id: string;
+  name: string;
+  amount: number;
+  spent: number;
 }
 
 export interface Fund {
@@ -20,12 +28,21 @@ export interface Fund {
   name: string;
   targetAmount: number;
   currentAmount: number;
+  subBudgets: SubBudget[];
 }
 
 const INITIAL_FUNDS: Fund[] = [
-  { id: "1", name: "Fondo de Emergencia", targetAmount: 500000, currentAmount: 0 },
-  { id: "2", name: "Vacaciones", targetAmount: 1000000, currentAmount: 0 },
-  { id: "3", name: "Ahorro Inversión", targetAmount: 2000000, currentAmount: 0 },
+  { 
+    id: "1", 
+    name: "Vacaciones Verano", 
+    targetAmount: 500000, 
+    currentAmount: 0,
+    subBudgets: [
+      { id: "s1", name: "Alojamiento", amount: 200000, spent: 0 },
+      { id: "s2", name: "Comida", amount: 150000, spent: 0 },
+      { id: "s3", name: "Transporte", amount: 150000, spent: 0 },
+    ]
+  },
 ];
 
 export function useFinanceStore() {
@@ -68,7 +85,6 @@ export function useFinanceStore() {
     setTransactions(updatedTransactions);
     localStorage.setItem("bc_transactions", JSON.stringify(updatedTransactions));
 
-    // Si es un ahorro, actualizamos el monto actual del fondo
     if (t.type === "saving" && t.fundId) {
       const updatedFunds = funds.map((f) =>
         f.id === t.fundId ? { ...f, currentAmount: f.currentAmount + t.amount } : f
@@ -77,11 +93,20 @@ export function useFinanceStore() {
       localStorage.setItem("bc_funds", JSON.stringify(updatedFunds));
     }
     
-    // Si es un gasto asociado a una meta (usar el dinero ahorrado)
     if (t.type === "expense" && t.fundId) {
-      const updatedFunds = funds.map((f) =>
-        f.id === t.fundId ? { ...f, currentAmount: Math.max(0, f.currentAmount - t.amount) } : f
-      );
+      const updatedFunds = funds.map((f) => {
+        if (f.id === t.fundId) {
+          const updatedSubBudgets = f.subBudgets.map(sb => 
+            sb.id === t.subBudgetId ? { ...sb, spent: sb.spent + t.amount } : sb
+          );
+          return { 
+            ...f, 
+            currentAmount: Math.max(0, f.currentAmount - t.amount),
+            subBudgets: updatedSubBudgets
+          };
+        }
+        return f;
+      });
       setFunds(updatedFunds);
       localStorage.setItem("bc_funds", JSON.stringify(updatedFunds));
     }
@@ -109,7 +134,6 @@ export function useFinanceStore() {
     .filter((t) => t.type === "saving")
     .reduce((acc, t) => acc + t.amount, 0);
 
-  // El balance es Ingresos - Gastos - Lo que ya moviste a ahorros
   const balance = totalIncome - totalExpense - totalSavings;
 
   return {
