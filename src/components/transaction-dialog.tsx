@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, PiggyBank, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -41,12 +41,16 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
     onAdd({
       type,
       amount: parseFloat(amount),
-      category,
-      description,
+      category: type === "saving" ? "Ahorro Meta" : category,
+      description: description || (type === "saving" ? "Aporte a meta" : ""),
       date: new Date().toISOString(),
-      fundId: type === "expense" ? fundId : undefined,
+      fundId: (type === "expense" || type === "saving") ? fundId : undefined,
     });
     setOpen(false);
+    resetForm();
+  };
+
+  const resetForm = () => {
     setAmount("");
     setCategory("");
     setDescription("");
@@ -55,28 +59,53 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
 
   const categories = type === "income" 
     ? ["Salario", "Ventas", "Intereses", "Otros"]
-    : ["Comida", "Transporte", "Ocio", "Salud", "Ahorros", "Otros"];
+    : ["Comida", "Transporte", "Ocio", "Salud", "Cuentas", "Otros"];
+
+  const getButtonConfig = () => {
+    switch(type) {
+      case 'income':
+        return { 
+          label: "Registrar Ingreso", 
+          icon: <ArrowUpCircle className="h-5 w-5" />,
+          className: "bg-emerald-600 text-white hover:bg-emerald-700" 
+        };
+      case 'saving':
+        return { 
+          label: "Destinar a Ahorro", 
+          icon: <PiggyBank className="h-5 w-5" />,
+          className: "bg-accent text-accent-foreground hover:bg-accent/90" 
+        };
+      default:
+        return { 
+          label: "Registrar Gasto", 
+          icon: <ArrowDownCircle className="h-5 w-5" />,
+          className: "border-rose-200 text-rose-700 hover:bg-rose-50" 
+        };
+    }
+  };
+
+  const config = getButtonConfig();
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(!val) resetForm(); }}>
       <DialogTrigger asChild>
         <Button 
-          variant={type === "income" ? "default" : "outline"} 
-          className={`gap-2 w-full md:w-auto h-12 rounded-xl transition-all shadow-sm ${type === 'income' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'border-accent text-accent-foreground hover:bg-accent/10'}`}
+          variant={type === "income" || type === "saving" ? "default" : "outline"} 
+          className={`gap-2 w-full md:w-auto h-12 rounded-xl transition-all shadow-sm font-bold ${config.className}`}
         >
-          <PlusCircle className="h-5 w-5" />
-          {type === "income" ? "Registrar Ingreso" : "Registrar Gasto"}
+          {config.icon}
+          {config.label}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-headline text-xl">
-            {type === "income" ? "Nuevo Ingreso" : "Nuevo Gasto"}
+          <DialogTitle className="font-headline text-xl flex items-center gap-2">
+            {config.icon} {config.label}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="amount">Cantidad ($)</Label>
+            <Label htmlFor="amount">Monto en Pesos ($)</Label>
             <Input
               id="amount"
               type="number"
@@ -84,56 +113,63 @@ export function TransactionDialog({ type, funds, onAdd }: TransactionDialogProps
               required
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="0"
-              className="h-11"
+              placeholder="Ej: 50000"
+              className="h-11 text-lg font-bold"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="category">Categoría</Label>
-            <Select required value={category} onValueChange={setCategory}>
-              <SelectTrigger className="h-11">
-                <SelectValue placeholder="Selecciona una categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {type === "expense" && funds.length > 0 && (
+          
+          {type !== "saving" && (
             <div className="space-y-2">
-              <Label htmlFor="fund">Asignar a Meta de Ahorro (Opcional)</Label>
-              <Select value={fundId} onValueChange={setFundId}>
+              <Label htmlFor="category">Categoría</Label>
+              <Select required value={category} onValueChange={setCategory}>
                 <SelectTrigger className="h-11">
-                  <SelectValue placeholder="Ninguna" />
+                  <SelectValue placeholder="Selecciona una categoría" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Ninguna</SelectItem>
-                  {funds.map((fund) => (
-                    <SelectItem key={fund.id} value={fund.id}>
-                      {fund.name} (Restante: ${Math.max(0, fund.allocatedAmount - fund.spentAmount).toLocaleString('es-CL')})
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           )}
+
+          {(type === "expense" || type === "saving") && (
+            <div className="space-y-2">
+              <Label htmlFor="fund">
+                {type === "saving" ? "Seleccionar Meta de Destino" : "Descontar de Meta (Opcional)"}
+              </Label>
+              <Select required={type === "saving"} value={fundId} onValueChange={setFundId}>
+                <SelectTrigger className="h-11 border-accent/50 bg-accent/5">
+                  <SelectValue placeholder={type === "saving" ? "Elige una meta" : "Ninguna (Gasto general)"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {type === "expense" && <SelectItem value="none">Ninguna</SelectItem>}
+                  {funds.map((fund) => (
+                    <SelectItem key={fund.id} value={fund.id}>
+                      {fund.name} (Llevas: ${fund.currentAmount.toLocaleString('es-CL')})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="description">Descripción</Label>
+            <Label htmlFor="description">Descripción (Opcional)</Label>
             <Input
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Ej. Pago de sueldo"
+              placeholder={type === "saving" ? "Ej. Ahorro del mes" : "Ej. Compra supermercado"}
               className="h-11"
             />
           </div>
           <DialogFooter className="pt-4">
-            <Button type="submit" className="w-full h-11 bg-accent text-accent-foreground hover:bg-accent/90">
-              Guardar Registro
+            <Button type="submit" className={`w-full h-12 font-bold text-lg ${config.className}`}>
+              Confirmar Registro
             </Button>
           </DialogFooter>
         </form>

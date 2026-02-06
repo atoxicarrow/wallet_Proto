@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 
-export type TransactionType = "income" | "expense";
+export type TransactionType = "income" | "expense" | "saving";
 
 export interface Transaction {
   id: string;
@@ -18,14 +18,14 @@ export interface Transaction {
 export interface Fund {
   id: string;
   name: string;
-  allocatedAmount: number;
-  spentAmount: number;
+  targetAmount: number;
+  currentAmount: number;
 }
 
 const INITIAL_FUNDS: Fund[] = [
-  { id: "1", name: "Fondo de Emergencia", allocatedAmount: 500000, spentAmount: 0 },
-  { id: "2", name: "Vacaciones", allocatedAmount: 1000000, spentAmount: 0 },
-  { id: "3", name: "Ahorro Inversión", allocatedAmount: 2000000, spentAmount: 0 },
+  { id: "1", name: "Fondo de Emergencia", targetAmount: 500000, currentAmount: 0 },
+  { id: "2", name: "Vacaciones", targetAmount: 1000000, currentAmount: 0 },
+  { id: "3", name: "Ahorro Inversión", targetAmount: 2000000, currentAmount: 0 },
 ];
 
 export function useFinanceStore() {
@@ -68,9 +68,19 @@ export function useFinanceStore() {
     setTransactions(updatedTransactions);
     localStorage.setItem("bc_transactions", JSON.stringify(updatedTransactions));
 
+    // Si es un ahorro, actualizamos el monto actual del fondo
+    if (t.type === "saving" && t.fundId) {
+      const updatedFunds = funds.map((f) =>
+        f.id === t.fundId ? { ...f, currentAmount: f.currentAmount + t.amount } : f
+      );
+      setFunds(updatedFunds);
+      localStorage.setItem("bc_funds", JSON.stringify(updatedFunds));
+    }
+    
+    // Si es un gasto asociado a una meta (usar el dinero ahorrado)
     if (t.type === "expense" && t.fundId) {
       const updatedFunds = funds.map((f) =>
-        f.id === t.fundId ? { ...f, spentAmount: f.spentAmount + t.amount } : f
+        f.id === t.fundId ? { ...f, currentAmount: Math.max(0, f.currentAmount - t.amount) } : f
       );
       setFunds(updatedFunds);
       localStorage.setItem("bc_funds", JSON.stringify(updatedFunds));
@@ -79,8 +89,8 @@ export function useFinanceStore() {
     if (!isOffline) syncData();
   };
 
-  const addFund = (f: Omit<Fund, "id" | "spentAmount">) => {
-    const newFund = { ...f, id: Math.random().toString(36).substr(2, 9), spentAmount: 0 };
+  const addFund = (f: Omit<Fund, "id" | "currentAmount">) => {
+    const newFund = { ...f, id: Math.random().toString(36).substr(2, 9), currentAmount: 0 };
     const updatedFunds = [...funds, newFund];
     setFunds(updatedFunds);
     localStorage.setItem("bc_funds", JSON.stringify(updatedFunds));
@@ -95,7 +105,12 @@ export function useFinanceStore() {
     .filter((t) => t.type === "expense")
     .reduce((acc, t) => acc + t.amount, 0);
 
-  const balance = totalIncome - totalExpense;
+  const totalSavings = transactions
+    .filter((t) => t.type === "saving")
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  // El balance es Ingresos - Gastos - Lo que ya moviste a ahorros
+  const balance = totalIncome - totalExpense - totalSavings;
 
   return {
     transactions,
@@ -104,6 +119,7 @@ export function useFinanceStore() {
     addFund,
     totalIncome,
     totalExpense,
+    totalSavings,
     balance,
     isSyncing,
     isOffline,
