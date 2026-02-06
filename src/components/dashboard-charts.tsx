@@ -10,6 +10,7 @@ interface DashboardChartsProps {
 }
 
 export function DashboardCharts({ transactions }: DashboardChartsProps) {
+  // Datos para el gráfico de torta (Gastos por Categoría)
   const expenseByCategory = transactions
     .filter((t) => t.type === "expense")
     .reduce((acc: any, t) => {
@@ -24,14 +25,33 @@ export function DashboardCharts({ transactions }: DashboardChartsProps) {
 
   const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
-  const monthlyData = [
-    { name: "Ene", ingresos: 4000, gastos: 2400 },
-    { name: "Feb", ingresos: 3000, gastos: 1398 },
-    { name: "Mar", ingresos: 2000, gastos: 9800 },
-    { name: "Abr", ingresos: 2780, gastos: 3908 },
-    { name: "May", ingresos: 1890, gastos: 4800 },
-    { name: "Jun", ingresos: 2390, gastos: 3800 },
-  ];
+  // Generar datos reales para el gráfico de barras por mes
+  const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+  const currentYear = new Date().getFullYear();
+  
+  const monthlyAggregated = transactions.reduce((acc: any, t) => {
+    const date = new Date(t.date);
+    if (date.getFullYear() === currentYear) {
+      const monthIdx = date.getMonth();
+      const monthName = months[monthIdx];
+      
+      if (!acc[monthName]) {
+        acc[monthName] = { name: monthName, ingresos: 0, gastos: 0 };
+      }
+      
+      if (t.type === 'income') acc[monthName].ingresos += t.amount;
+      if (t.type === 'expense') acc[monthName].gastos += t.amount;
+    }
+    return acc;
+  }, {});
+
+  // Ordenar y filtrar solo meses que tengan datos o mostrar los últimos 6 meses
+  const barData = months
+    .map(m => monthlyAggregated[m] || { name: m, ingresos: 0, gastos: 0 })
+    .filter((d, i) => {
+      const currentMonth = new Date().getMonth();
+      return i <= currentMonth && i > currentMonth - 6;
+    });
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -57,7 +77,7 @@ export function DashboardCharts({ transactions }: DashboardChartsProps) {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip formatter={(value: number) => `$${value.toLocaleString('es-CL')}`} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -76,17 +96,23 @@ export function DashboardCharts({ transactions }: DashboardChartsProps) {
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="ingresos" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="gastos" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {barData.some(d => d.ingresos > 0 || d.gastos > 0) ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={barData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value.toLocaleString('es-CL')}`} />
+                  <Tooltip formatter={(value: number) => `$${value.toLocaleString('es-CL')}`} />
+                  <Legend />
+                  <Bar dataKey="ingresos" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Ingresos" />
+                  <Bar dataKey="gastos" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} name="Gastos" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-muted-foreground italic">
+                Sin actividad este año
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

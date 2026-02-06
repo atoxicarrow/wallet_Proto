@@ -94,6 +94,8 @@ const useFinanceStoreBase = create<FinanceState>()(
                 const updatedSubBudgets = f.subBudgets.map(sb => 
                   sb.id === t.subBudgetId ? { ...sb, spent: sb.spent + t.amount } : sb
                 );
+                // El currentAmount puede bajar, pero el balance general (Wallet) 
+                // compensará si el ahorro no es suficiente.
                 return { 
                   ...f, 
                   currentAmount: f.currentAmount - t.amount, 
@@ -182,15 +184,16 @@ export function useFinanceStore() {
     .filter((t) => t.type === "expense")
     .reduce((acc, t) => acc + t.amount, 0);
 
+  // El Balance de la Wallet es: Todo el dinero que entró - Todo el dinero que salió - Lo que está guardado en metas (que no se ha gastado)
+  // Calculamos cuánto dinero hay REALMENTE guardado hoy en metas (solo los saldos positivos)
+  const currentTotalInFunds = store.funds.reduce((acc, f) => acc + Math.max(0, f.currentAmount), 0);
+  
+  // El balance disponible es el efectivo total menos lo que está reservado en metas
+  const balance = totalIncome - totalExpense - currentTotalInFunds;
+
   const totalSavings = store.transactions
     .filter((t) => t.type === "saving")
     .reduce((acc, t) => acc + t.amount, 0);
-
-  const expensesFromFunds = store.transactions
-    .filter((t) => t.type === "expense" && t.fundId)
-    .reduce((acc, t) => acc + t.amount, 0);
-
-  const balance = totalIncome - (totalExpense - expensesFromFunds) - totalSavings;
 
   return {
     ...store,
