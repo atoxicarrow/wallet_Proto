@@ -1,0 +1,11 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "financial-hero",
+      "description": "Financial planning illustration",
+      "imageUrl": "https://picsum.photos/seed/finance1/1200/600",
+      "imageHint": "finance savings"
+    }
+  ]
+}
