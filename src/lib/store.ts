@@ -54,6 +54,8 @@ interface FinanceState {
   isOffline: boolean;
   addTransaction: (t: Omit<Transaction, "id">) => void;
   addFund: (f: Omit<Fund, "id" | "currentAmount">) => void;
+  updateFund: (id: string, f: Partial<Fund>) => void;
+  removeFund: (id: string) => void;
   setOffline: (offline: boolean) => void;
   setSyncing: (syncing: boolean) => void;
 }
@@ -118,6 +120,14 @@ const useFinanceStoreBase = create<FinanceState>()(
         const newFund = { ...f, id, currentAmount: 0 };
         set((state) => ({ funds: [...state.funds, newFund] }));
       },
+
+      updateFund: (id, updatedFields) => set((state) => ({
+        funds: state.funds.map((f) => f.id === id ? { ...f, ...updatedFields } : f)
+      })),
+
+      removeFund: (id) => set((state) => ({
+        funds: state.funds.filter((f) => f.id !== id)
+      })),
     }),
     {
       name: 'billetera-clara-v2',
@@ -153,6 +163,8 @@ export function useFinanceStore() {
       isOffline: false,
       addTransaction: () => {},
       addFund: () => {},
+      updateFund: () => {},
+      removeFund: () => {},
       setOffline: () => {},
       setSyncing: () => {},
       totalIncome: 0,
