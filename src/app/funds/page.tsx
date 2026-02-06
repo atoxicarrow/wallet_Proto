@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Target, PiggyBank, ArrowRight, Trash2, Layers } from "lucide-react";
+import { Plus, Target, PiggyBank, ArrowRight, Trash2, Layers, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { TransactionDialog } from "@/components/transaction-dialog";
 
@@ -27,7 +27,8 @@ export default function FundsPage() {
 
   const handleSubBudgetChange = (index: number, field: "name" | "amount", value: string) => {
     const newSubs = [...subBudgets];
-    newSubs[index][field] = value;
+    if (field === "name") newSubs[index].name = value;
+    if (field === "amount") newSubs[index].amount = value;
     setSubBudgets(newSubs);
   };
 
@@ -36,7 +37,7 @@ export default function FundsPage() {
     const subBudgetsFormatted: SubBudget[] = subBudgets.map(sb => ({
       id: Math.random().toString(36).substr(2, 9),
       name: sb.name,
-      amount: parseFloat(sb.amount),
+      amount: parseFloat(sb.amount) || 0,
       spent: 0
     }));
 
@@ -186,22 +187,37 @@ export default function FundsPage() {
                 
                 <div className="space-y-3 pt-4 border-t border-dashed border-border">
                   <h4 className="text-xs font-black uppercase text-accent-foreground tracking-widest flex items-center gap-2">
-                    <Layers className="h-3 w-3" /> Subdivisiones del Presupuesto
+                    <Layers className="h-3 w-3" /> Desglose de Presupuestos
                   </h4>
                   {fund.subBudgets.map((sb) => {
                     const sbPercentage = (sb.spent / sb.amount) * 100;
+                    const isOver = sb.spent > sb.amount;
                     return (
-                      <div key={sb.id} className="space-y-1 bg-secondary/30 p-3 rounded-xl">
+                      <div key={sb.id} className="space-y-1 bg-secondary/30 p-3 rounded-xl border border-transparent hover:border-accent/20 transition-colors">
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-sm font-bold">{sb.name}</span>
-                          <span className="text-xs font-medium text-muted-foreground">
+                          <span className={`text-xs font-bold ${isOver ? 'text-rose-600' : 'text-emerald-600'}`}>
                             ${formatCLP(sb.spent)} / ${formatCLP(sb.amount)}
                           </span>
                         </div>
-                        <Progress value={sbPercentage} className="h-1.5 bg-white" />
-                        <p className="text-[10px] text-right text-muted-foreground italic">
-                          {sbPercentage >= 100 ? "Presupuesto completado" : `Disponible: $${formatCLP(sb.amount - sb.spent)}`}
-                        </p>
+                        <div className="h-1.5 w-full bg-white rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-500 ease-in-out ${isOver ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                            style={{ width: `${Math.min(sbPercentage, 100)}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center mt-1">
+                          <p className={`text-[10px] italic font-medium ${isOver ? 'text-rose-500' : 'text-muted-foreground'}`}>
+                            {isOver ? (
+                              <span className="flex items-center gap-1 font-bold"><AlertCircle className="h-2 w-2" /> Excedido por ${formatCLP(sb.spent - sb.amount)}</span>
+                            ) : (
+                              `Disponible: $${formatCLP(sb.amount - sb.spent)}`
+                            )}
+                          </p>
+                          <span className={`text-[9px] font-black ${isOver ? 'text-rose-600' : 'text-emerald-600'}`}>
+                            {Math.round(sbPercentage)}%
+                          </span>
+                        </div>
                       </div>
                     );
                   })}

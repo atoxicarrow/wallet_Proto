@@ -2,7 +2,7 @@
 "use client";
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { useState, useEffect } from 'react';
 
 export type TransactionType = "income" | "expense" | "saving";
@@ -14,15 +14,15 @@ export interface Transaction {
   category: string;
   date: string;
   description: string;
-  fundId?: string;
-  subBudgetId?: string;
+  fundId?: string;       
+  subBudgetId?: string;  
 }
 
 export interface SubBudget {
   id: string;
   name: string;
-  amount: number;
-  spent: number;
+  amount: number; 
+  spent: number;  
 }
 
 export interface Fund {
@@ -36,13 +36,13 @@ export interface Fund {
 const INITIAL_FUNDS: Fund[] = [
   { 
     id: "1", 
-    name: "Vacaciones Verano", 
-    targetAmount: 500000, 
+    name: "Vacaciones Viña", 
+    targetAmount: 300000, 
     currentAmount: 0,
     subBudgets: [
-      { id: "s1", name: "Alojamiento", amount: 200000, spent: 0 },
-      { id: "s2", name: "Comida", amount: 150000, spent: 0 },
-      { id: "s3", name: "Transporte", amount: 150000, spent: 0 },
+      { id: "s1", name: "Alojamiento", amount: 150000, spent: 0 },
+      { id: "s2", name: "Comida", amount: 100000, spent: 0 },
+      { id: "s3", name: "Pasajes", amount: 50000, spent: 0 },
     ]
   },
 ];
@@ -58,7 +58,6 @@ interface FinanceState {
   setSyncing: (syncing: boolean) => void;
 }
 
-// Store interno con Zustand y persistencia
 const useFinanceStoreBase = create<FinanceState>()(
   persist(
     (set, get) => ({
@@ -66,10 +65,15 @@ const useFinanceStoreBase = create<FinanceState>()(
       funds: INITIAL_FUNDS,
       isSyncing: false,
       isOffline: false,
+      
       setOffline: (isOffline) => set({ isOffline }),
       setSyncing: (isSyncing) => set({ isSyncing }),
+
       addTransaction: (t) => {
-        const id = Math.random().toString(36).substring(2, 11);
+        const id = typeof crypto !== 'undefined' && crypto.randomUUID 
+          ? crypto.randomUUID() 
+          : Math.random().toString(36).substring(2, 11);
+
         const newTransaction = { ...t, id };
         
         set((state) => {
@@ -90,7 +94,7 @@ const useFinanceStoreBase = create<FinanceState>()(
                 );
                 return { 
                   ...f, 
-                  currentAmount: Math.max(0, f.currentAmount - t.amount),
+                  currentAmount: f.currentAmount - t.amount, 
                   subBudgets: updatedSubBudgets
                 };
               }
@@ -101,79 +105,83 @@ const useFinanceStoreBase = create<FinanceState>()(
           return { transactions: updatedTransactions, funds: updatedFunds };
         });
 
-        // Efecto visual de sincronización
         if (!get().isOffline) {
           get().setSyncing(true);
-          setTimeout(() => get().setSyncing(false), 1000);
+          setTimeout(() => get().setSyncing(false), 800);
         }
       },
+
       addFund: (f) => {
-        const id = Math.random().toString(36).substring(2, 11);
+        const id = typeof crypto !== 'undefined' && crypto.randomUUID 
+          ? crypto.randomUUID() 
+          : Math.random().toString(36).substring(2, 11);
         const newFund = { ...f, id, currentAmount: 0 };
         set((state) => ({ funds: [...state.funds, newFund] }));
-        
-        if (!get().isOffline) {
-          get().setSyncing(true);
-          setTimeout(() => get().setSyncing(false), 1000);
-        }
       },
     }),
     {
-      name: 'billetera-clara-storage',
+      name: 'billetera-clara-v2',
+      storage: createJSONStorage(() => localStorage),
     }
   )
 );
 
-// Wrapper hook para manejar hidratación en Next.js y valores calculados
 export function useFinanceStore() {
   const store = useFinanceStoreBase();
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
     setIsHydrated(true);
-    
     if (typeof navigator !== 'undefined') {
-      store.setOffline(!navigator.onLine);
+      useFinanceStoreBase.setState({ isOffline: !navigator.onLine });
     }
-
-    const handleOnline = () => {
-      store.setOffline(false);
-      store.setSyncing(true);
-      setTimeout(() => store.setSyncing(false), 1500);
-    };
-    const handleOffline = () => store.setOffline(true);
-
+    const handleOnline = () => useFinanceStoreBase.setState({ isOffline: false, isSyncing: true });
+    const handleOffline = () => useFinanceStoreBase.setState({ isOffline: true });
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [store]);
+  }, []);
 
-  // Guardar con isHydrated para evitar errores de hidratación en Next.js
-  const transactions = isHydrated ? store.transactions : [];
-  const funds = isHydrated ? store.funds : INITIAL_FUNDS;
+  if (!isHydrated) {
+    return {
+      transactions: [],
+      funds: [],
+      isSyncing: false,
+      isOffline: false,
+      addTransaction: () => {},
+      addFund: () => {},
+      setOffline: () => {},
+      setSyncing: () => {},
+      totalIncome: 0,
+      totalExpense: 0,
+      totalSavings: 0,
+      balance: 0
+    };
+  }
 
-  const totalIncome = transactions
+  const totalIncome = store.transactions
     .filter((t) => t.type === "income")
     .reduce((acc, t) => acc + t.amount, 0);
 
-  const totalExpense = transactions
+  const totalExpense = store.transactions
     .filter((t) => t.type === "expense")
     .reduce((acc, t) => acc + t.amount, 0);
 
-  const totalSavings = transactions
+  const totalSavings = store.transactions
     .filter((t) => t.type === "saving")
     .reduce((acc, t) => acc + t.amount, 0);
 
-  const balance = totalIncome - totalExpense - totalSavings;
+  const expensesFromFunds = store.transactions
+    .filter((t) => t.type === "expense" && t.fundId)
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  const balance = totalIncome - (totalExpense - expensesFromFunds) - totalSavings;
 
   return {
     ...store,
-    transactions,
-    funds,
     totalIncome,
     totalExpense,
     totalSavings,
