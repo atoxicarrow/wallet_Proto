@@ -82,23 +82,23 @@ const useFinanceStoreBase = create<FinanceState>()(
           const updatedTransactions = [newTransaction, ...state.transactions];
           let updatedFunds = [...state.funds];
 
+          // Lógica de ahorro: Incrementa el pozo de la meta
           if (t.type === "saving" && t.fundId) {
             updatedFunds = updatedFunds.map((f) =>
               f.id === t.fundId ? { ...f, currentAmount: f.currentAmount + t.amount } : f
             );
           }
           
-          if (t.type === "expense" && t.fundId) {
+          // Lógica de gasto: Descuenta de la meta y de la subdivisión si aplica
+          if (t.type === "expense" && t.fundId && t.fundId !== "none") {
             updatedFunds = updatedFunds.map((f) => {
               if (f.id === t.fundId) {
                 const updatedSubBudgets = f.subBudgets.map(sb => 
                   sb.id === t.subBudgetId ? { ...sb, spent: sb.spent + t.amount } : sb
                 );
-                // El currentAmount puede bajar, pero el balance general (Wallet) 
-                // compensará si el ahorro no es suficiente.
                 return { 
                   ...f, 
-                  currentAmount: f.currentAmount - t.amount, 
+                  currentAmount: Math.max(0, f.currentAmount - t.amount), 
                   subBudgets: updatedSubBudgets
                 };
               }
@@ -184,16 +184,14 @@ export function useFinanceStore() {
     .filter((t) => t.type === "expense")
     .reduce((acc, t) => acc + t.amount, 0);
 
-  // El Balance de la Wallet es: Todo el dinero que entró - Todo el dinero que salió - Lo que está guardado en metas (que no se ha gastado)
-  // Calculamos cuánto dinero hay REALMENTE guardado hoy en metas (solo los saldos positivos)
+  // Dinero REALMENTE guardado hoy en metas (solo los saldos que no se han gastado)
   const currentTotalInFunds = store.funds.reduce((acc, f) => acc + Math.max(0, f.currentAmount), 0);
   
-  // El balance disponible es el efectivo total menos lo que está reservado en metas
+  // El balance disponible (Wallet) es el efectivo total menos los gastos generales y lo reservado en metas
+  // Los gastos realizados DESDE metas ya se descontaron del totalExpense, por lo que la Wallet se mantiene pura.
   const balance = totalIncome - totalExpense - currentTotalInFunds;
 
-  const totalSavings = store.transactions
-    .filter((t) => t.type === "saving")
-    .reduce((acc, t) => acc + t.amount, 0);
+  const totalSavings = store.funds.reduce((acc, f) => acc + f.currentAmount, 0);
 
   return {
     ...store,
